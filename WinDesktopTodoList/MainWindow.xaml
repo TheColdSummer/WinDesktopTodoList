@@ -6,8 +6,10 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:WinDesktopTodoList"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
     d:DataContext="{d:DesignInstance Type=local:ViewModel}"
-    Title="MainWindow"
+    Title="WinDesktopTodoList"
+    ShowInTaskbar="False"
     ResizeMode="NoResize"
     WindowStyle="None"
     Width="300"
@@ -16,6 +18,7 @@
     Topmost="True"
     mc:Ignorable="d"
     SourceInitialized="sourceInitialized">
+    
 
     <WindowChrome.WindowChrome>
         <WindowChrome GlassFrameThickness="-1" />
@@ -33,6 +36,21 @@
     </Window.Resources>
 
     <Grid Background="Transparent">
+        <hc:NotifyIcon x:Name="NotifyIconContextContent" 
+                   Text="WinDesktopTodoList"
+                   Visibility="Visible"
+                   Icon="./src/app.ico">
+            <hc:NotifyIcon.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Command="hc:ControlCommands.ShutdownApp" Header="退出"/>
+                </ContextMenu>
+            </hc:NotifyIcon.ContextMenu>
+            <hc:Interaction.Triggers>
+                <hc:EventTrigger EventName="Click">
+                    <hc:EventToCommand Command="hc:ControlCommands.PushMainWindow2Top"/>
+                </hc:EventTrigger>
+            </hc:Interaction.Triggers>
+        </hc:NotifyIcon>
         <Border x:Name="outerBorder" CornerRadius="8" BorderBrush="#43454E" BorderThickness="1" Margin="5">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="10" Color="Black" ShadowDepth="1" Opacity="0.7"/>
