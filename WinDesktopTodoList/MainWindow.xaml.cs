@@ -581,7 +581,7 @@ namespace WinDesktopTodoList
                     break;
                 case Theme.Light:
                     this.currentTheme = Theme.Transparent;
-                    appBackground.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0, 255, 255, 255));
+                    appBackground.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(1, 255, 255, 255));
                     //this.foreground = "White";
                     this.viewModel.ForegroundColor = System.Windows.Media.Brushes.White;
                     setCheckBoxBorderBrush(System.Windows.Media.Brushes.White);

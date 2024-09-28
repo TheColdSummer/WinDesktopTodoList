@@ -88,7 +88,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
-                                    <TextBox x:Name="txtNewItem" KeyDown="txtNewItem_KeyDown" HorizontalAlignment="Stretch" FontSize="20" Margin="2" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderBrush="White" BorderThickness="0" CaretBrush="White"/>
+                                    <TextBox x:Name="txtNewItem" KeyDown="txtNewItem_KeyDown" HorizontalAlignment="Stretch" FontSize="20" Margin="2" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderBrush="White" BorderThickness="0" CaretBrush="{Binding ForegroundColor}"/>
                                     <Border Background="{Binding ForegroundColor}" Height="1" HorizontalAlignment="Stretch" Cursor="Arrow"/>
                                 </StackPanel>
                             </Grid>
