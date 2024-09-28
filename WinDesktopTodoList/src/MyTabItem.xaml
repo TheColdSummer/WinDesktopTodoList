@@ -14,7 +14,7 @@
                                               ContentSource="Header"
                                               Margin="10,2,10,8"/>
                                 <!-- 默认情况下隐藏的横线 -->
-                                <Border Name="SelectionMarker" Background="White" Height="2" Visibility="Collapsed" HorizontalAlignment="Stretch"/>
+                                <Border Name="SelectionMarker" Background="{Binding ForegroundColor}" Height="2" Visibility="Collapsed" HorizontalAlignment="Stretch"/>
                             </StackPanel>
                         </Border>
                     </Grid>

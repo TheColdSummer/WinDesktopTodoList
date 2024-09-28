@@ -14,7 +14,8 @@
     Height="360"
     Background="Transparent"
     Topmost="True"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    SourceInitialized="sourceInitialized">
 
     <WindowChrome.WindowChrome>
         <WindowChrome GlassFrameThickness="-1" />
@@ -26,6 +27,7 @@
                 <ResourceDictionary Source="src/MyTabItem.xaml"/>
                 <ResourceDictionary Source="src/MyListBoxItem.xaml"/>
                 <ResourceDictionary Source="src/MyButton.xaml"/>
+                <ResourceDictionary Source="src/MyVerticalScrollBar.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
@@ -56,47 +58,57 @@
 
                 <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="26,14,26,16">
                     <TabItem Header="待办" Background="Transparent" BorderThickness="0" Margin="0" Foreground="{Binding ForegroundColor}" FontSize="14" FontWeight="Bold" Cursor="Hand">
-                        <StackPanel Orientation="Vertical" Margin="0">
-                            <Grid Margin="0,10,0,10" Background="Transparent">
+                        <Grid Margin="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,10,0,10" Background="Transparent">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Background="Transparent" Margin="0,0,0,0" BorderBrush="Transparent" BorderThickness="0">
-                                    <StackPanel>
-                                        <TextBox x:Name="txtNewItem" KeyDown="txtNewItem_KeyDown" HorizontalAlignment="Stretch" FontSize="20" Margin="2" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderBrush="White" BorderThickness="0" CaretBrush="White"/>
-                                        <Border Background="LightGray" Height="1" HorizontalAlignment="Stretch"/>
-                                    </StackPanel>
-                                </Border>
+                                <StackPanel>
+                                    <TextBox x:Name="txtNewItem" KeyDown="txtNewItem_KeyDown" HorizontalAlignment="Stretch" FontSize="20" Margin="2" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderBrush="White" BorderThickness="0" CaretBrush="White"/>
+                                    <Border Background="{Binding ForegroundColor}" Height="1" HorizontalAlignment="Stretch" Cursor="Arrow"/>
+                                </StackPanel>
                             </Grid>
 
-                            <ListBox x:Name="lstItems" FontSize="20" Margin="0,0,0,24" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Cursor="Arrow">
+                            <ListBox Grid.Row="1" x:Name="lstItems" FontSize="20" Margin="0,0,0,24" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Cursor="Arrow">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="0,2" Cursor="Arrow">
-                                            <CheckBox DataContext="{Binding Id}" Checked="CheckBox_Checked" Margin="0, 3, 4, 0" Cursor="Hand"/>
+                                            <CheckBox DataContext="{Binding Id}" Initialized="checkBoxInitialized" Background="Transparent" Foreground="Transparent" Checked="CheckBox_Checked" Margin="0, 3, 4, 0" Cursor="Hand"/>
                                             <TextBlock Text="{Binding Text}" FontSize="16" VerticalAlignment="Center" FontWeight="Normal" Cursor="Arrow"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
-                        </StackPanel>
+                        </Grid>
                     </TabItem>
                     <!--#endregion-->
                     <TabItem Header="已办" Background="Transparent" BorderThickness="0" Margin="0" Foreground="{Binding ForegroundColor}" FontSize="14" FontWeight="Bold" Cursor="Hand">
-                        <TextBox Text="Tab 2..." FontWeight="Normal" BorderBrush="Transparent" Background="Transparent" Foreground="{Binding ForegroundColor}"/>
+                        <ListBox x:Name="finishedItems" FontSize="20" Margin="0,0,0,24" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Cursor="Arrow">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,2" Cursor="Arrow">
+                                        <TextBlock Text="☑ " FontSize="16" VerticalAlignment="Center" FontWeight="Normal" Cursor="Arrow"/>
+                                        <TextBlock Text="{Binding Text}" FontSize="16" VerticalAlignment="Center" FontWeight="Normal" Cursor="Arrow"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </TabItem>
                 </TabControl>
 
                 <StackPanel Grid.Row="1" Margin="0,8,10,0" Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Top" Height="24" Width="150">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10,4,14,0">
-                        <!--tab切换-->
-
                         <!--buttons-->
                         <Button Content="↺" Click="reloadFromFile" FontSize="16" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderBrush="Transparent" Cursor="Hand" Margin="2,0"/>
                         <Button Content="ø" Click="changeTheme" FontSize="16" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderBrush="Transparent" Cursor="Hand" Margin="2,0"/>
-                        <Button Content="+" FontSize="16" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderBrush="Transparent" Cursor="Hand" Margin="2,0"/>
-                        <Button Content="(¬‿¬)" FontSize="12" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderBrush="Transparent" Cursor="Hand" Margin="2,2"/>
+                        <Button Content="🗑︎" Click="clearFinished" FontSize="10" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderBrush="Transparent" Cursor="Hand" Margin="2,5,2,0"/>
+                        <Button Content="(¬‿¬)" Click="showInfo" FontSize="12" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderBrush="Transparent" Cursor="Hand" Margin="2,2"/>
                     </StackPanel>
 
                 </StackPanel>

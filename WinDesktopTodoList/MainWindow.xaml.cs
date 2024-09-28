@@ -373,6 +373,7 @@ namespace WinDesktopTodoList
         {
             public int Id { get; set; }
             public string Text { get; set; }
+
         }
 
         private void txtNewItem_KeyDown(object sender, KeyEventArgs e)
@@ -400,6 +401,7 @@ namespace WinDesktopTodoList
             // 获取 CheckBox 的 DataContext, 即绑定的 TodoItem 对象的id，然后删除对应id的TodoItem
             var item = lstItems.Items.OfType<TodoItem>().FirstOrDefault(i => i.Id == (int)(checkBox.DataContext)) as TodoItem;
             lstItems.Items.Remove(item);
+            finishedItems.Items.Add(item);
             // 从文件中删除
             string[] lines = File.ReadAllLines("todo.txt");
             File.WriteAllLines("todo.txt", lines.Where(line => !line.Contains(item.Text)));
@@ -509,6 +511,19 @@ namespace WinDesktopTodoList
 
         private void loadFromFile()
         {
+            finishedItems.Items.Clear();
+            lstItems.Items.Clear();
+            if (File.Exists("finished.txt"))
+            {
+                using (StreamReader sr = File.OpenText("finished.txt"))
+                {
+                    string s = "";
+                    while ((s = sr.ReadLine()) != null)
+                    {
+                        finishedItems.Items.Add(new TodoItem { Id = -1, Text = s });
+                    }
+                }
+            }
             if (!File.Exists("todo.txt"))
             {
                 return;
@@ -516,7 +531,6 @@ namespace WinDesktopTodoList
             using (StreamReader sr = File.OpenText("todo.txt"))
             {
                 string s = "";
-                lstItems.Items.Clear();
                 while ((s = sr.ReadLine()) != null)
                 {
                     lstItems.Items.Add(new TodoItem { Id = currentId++, Text = s });
@@ -534,12 +548,14 @@ namespace WinDesktopTodoList
                     appBackground.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 255, 255, 255));
                     //this.foreground = "Black";
                     this.viewModel.ForegroundColor = System.Windows.Media.Brushes.Black;
+                    setCheckBoxBorderBrush(System.Windows.Media.Brushes.Black);
                     break;
                 case Theme.Light:
                     this.currentTheme = Theme.Transparent;
                     appBackground.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0, 255, 255, 255));
                     //this.foreground = "White";
                     this.viewModel.ForegroundColor = System.Windows.Media.Brushes.White;
+                    setCheckBoxBorderBrush(System.Windows.Media.Brushes.White);
                     outerBorder.BorderThickness = new Thickness(0);
                     break;
                 case Theme.Transparent:
@@ -562,6 +578,7 @@ namespace WinDesktopTodoList
                         appBackground.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 0, 0, 0));
                         //this.foreground = "White";
                         this.viewModel.ForegroundColor = System.Windows.Media.Brushes.White;
+                        setCheckBoxBorderBrush(System.Windows.Media.Brushes.White);
                     }
                     break;
                 case Theme.Custom:
@@ -569,9 +586,48 @@ namespace WinDesktopTodoList
                     appBackground.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 0, 0, 0));
                     //this.foreground = "White";
                     this.viewModel.ForegroundColor = System.Windows.Media.Brushes.White;
+                    setCheckBoxBorderBrush(System.Windows.Media.Brushes.White);
                     break;
             }
         }
+
+        private void setCheckBoxBorderBrush(SolidColorBrush color)
+        {
+            foreach (var item in lstItems.Items)
+            {
+                var listBoxItem = (ListBoxItem)(lstItems.ItemContainerGenerator.ContainerFromItem(item));
+                if (listBoxItem != null)
+                {
+                    var checkBoxes = FindVisualChildren<CheckBox>(listBoxItem);
+                    foreach (CheckBox checkBox in checkBoxes)
+                    {
+                        checkBox.BorderBrush = color;
+                    }
+                }
+            }
+
+        }
+
+        public static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
+        {
+            if (depObj != null)
+            {
+                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+                {
+                    var child = VisualTreeHelper.GetChild(depObj, i);
+                    if (child != null && child is T)
+                    {
+                        yield return (T)child;
+                    }
+
+                    foreach (T childOfChild in FindVisualChildren<T>(child))
+                    {
+                        yield return childOfChild;
+                    }
+                }
+            }
+        }
+
 
         private class MyTheme
         {
@@ -612,6 +668,7 @@ namespace WinDesktopTodoList
                     appBackground.Background = new SolidColorBrush(ParseColorString(theme.Background));
                     //this.foreground = ParseColorString(theme.Foreground).ToString();
                     this.viewModel.ForegroundColor = new SolidColorBrush(ParseColorString(theme.Foreground));
+                    setCheckBoxBorderBrush(new SolidColorBrush(ParseColorString(theme.Foreground)));
                 }
                 catch (FormatException e)
                 {
@@ -671,6 +728,37 @@ namespace WinDesktopTodoList
         private void reloadFromFile(object sender, RoutedEventArgs e)
         {
             loadFromFile();
+        }
+
+        private void showInfo(object sender, RoutedEventArgs e)
+        {
+            // 介绍项目和开发者
+            MessageBox.Show("WinDesktopTodoList\n"
+                + "一个简单的桌面待办事项列表\n\n"
+                + "开发者：TheColdSummer\n"
+                + "项目地址：https://github.com/TheColdSummer/WinDesktopTodoList");
+        }
+
+        private void clearFinished(object sender, RoutedEventArgs e)
+        {
+            // 清空finished.txt
+            File.WriteAllText("finished.txt", "");
+            finishedItems.Items.Clear();
+        }
+
+        private void sourceInitialized(object sender, EventArgs e)
+        {
+
+            setCheckBoxBorderBrush(this.viewModel.ForegroundColor);
+        }
+
+        private void checkBoxInitialized(object sender, EventArgs e)
+        {
+            var checkBox = sender as CheckBox;
+            if (checkBox != null)
+            {
+                checkBox.BorderBrush = this.viewModel.ForegroundColor;
+            }
         }
     }
 }
