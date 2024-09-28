@@ -47,15 +47,16 @@ namespace WinDesktopTodoList
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
-
+    
     //Win32方法
     public static class Win32Func
     {
         [DllImport("user32.dll")]
         public static extern int GetSystemMetrics(int nIndex);
-
         public const int SM_CXSCREEN = 0;
         public const int SM_CYSCREEN = 1;
+
+
 
         [DllImport("user32.dll")]
         public static extern IntPtr FindWindow(string className, string winName);
@@ -127,6 +128,28 @@ namespace WinDesktopTodoList
         public IntPtr programHandle;
         public IntPtr mainwindowParentHandle;
         private static bool debug = true;
+
+        private const long WS_EX_TRANSPARENT = 0x00000020L;
+
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_LAYERED = 0x80000;
+        private const int LWA_ALPHA = 0x2;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+
         public void SendMsgToProgman()
         {
             // 桌面窗口句柄，在外部定义，用于后面将我们自己的窗口作为子窗口放入
@@ -225,6 +248,8 @@ namespace WinDesktopTodoList
             {
                 var hwndSource = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
                 hwndSource.AddHook(WndProc);
+
+                attachWindowToDesktop();
             };
         }
 
@@ -359,12 +384,12 @@ namespace WinDesktopTodoList
 
         private bool hasSentToBack = false;
 
-        private void sendWindowToBack()
+        private void attachWindowToDesktop()
         {
             if (!hasSentToBack)
             {
                 IntPtr hWnd = new WindowInteropHelper(this).Handle;
-                Win32Func.SetParent(hWnd, mainwindowParentHandle);
+                Win32Func.SetParent(hWnd, progman);
                 hasSentToBack = true;
             }
         }
@@ -412,7 +437,11 @@ namespace WinDesktopTodoList
             }
         }
 
-        public static BitmapSource CaptureWallpaper()
+        private IntPtr progman;
+        private IntPtr shellView;
+        private IntPtr sysListView;
+
+        public BitmapSource CaptureWallpaper()
         {
             BitmapSource bitmapSource = null;
             IntPtr sourceDC = IntPtr.Zero;
@@ -421,9 +450,9 @@ namespace WinDesktopTodoList
             try
             {
                 // 获取桌面窗口的设备上下文
-                IntPtr progman = Win32Func.FindWindow("Progman", "Program Manager");
-                IntPtr shellView = Win32Func.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", "");
-                IntPtr sysListView = Win32Func.FindWindowEx(shellView, IntPtr.Zero, "SysListView32", "FolderView");
+                progman = Win32Func.FindWindow("Progman", "Program Manager");
+                shellView = Win32Func.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", "");
+                sysListView = Win32Func.FindWindowEx(shellView, IntPtr.Zero, "SysListView32", "FolderView");
 
                 if (sysListView == IntPtr.Zero)
                 {

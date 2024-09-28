@@ -15,7 +15,7 @@
     Width="300"
     Height="360"
     Background="Transparent"
-    Topmost="True"
+    AllowsTransparency="True"
     mc:Ignorable="d"
     SourceInitialized="sourceInitialized">
     
@@ -96,10 +96,14 @@
                             <ListBox Grid.Row="1" x:Name="lstItems" FontSize="20" Margin="0,0,0,24" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Cursor="Arrow">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="0,2" Cursor="Arrow">
-                                            <CheckBox DataContext="{Binding Id}" Initialized="checkBoxInitialized" Background="Transparent" Foreground="Transparent" Checked="CheckBox_Checked" Margin="0, 3, 4, 0" Cursor="Hand"/>
-                                            <TextBlock Text="{Binding Text}" FontSize="16" VerticalAlignment="Center" FontWeight="Normal" Cursor="Arrow"/>
-                                        </StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" DataContext="{Binding Id}" Initialized="checkBoxInitialized" Background="Transparent" Foreground="Transparent" Checked="CheckBox_Checked" Margin="0, 3, 4, 0" Cursor="Hand"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="16" VerticalAlignment="Center" FontWeight="Normal" TextWrapping="Wrap" Cursor="Arrow"/>
+                                        </Grid>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
@@ -110,10 +114,14 @@
                         <ListBox x:Name="finishedItems" FontSize="20" Margin="0,0,0,24" Background="Transparent" Foreground="{Binding ForegroundColor}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Visible" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Cursor="Arrow">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,2" Cursor="Arrow">
-                                        <TextBlock Text="☑ " FontSize="16" VerticalAlignment="Center" FontWeight="Normal" Cursor="Arrow"/>
-                                        <TextBlock Text="{Binding Text}" FontSize="16" VerticalAlignment="Center" FontWeight="Normal" Cursor="Arrow"/>
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="☑ " FontSize="16" VerticalAlignment="Top" FontWeight="Normal" Cursor="Arrow"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="16" VerticalAlignment="Center" FontWeight="Normal" TextWrapping="Wrap" Cursor="Arrow"/>
+                                    </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
