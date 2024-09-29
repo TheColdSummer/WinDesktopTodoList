@@ -23,9 +23,10 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace WinDesktopTodoList
 {
+    // ViewModel类，用于绑定前景色
     public class ViewModel : INotifyPropertyChanged
     {
-        private SolidColorBrush _foregroundColor = System.Windows.Media.Brushes.White;
+        private SolidColorBrush _foregroundColor = System.Windows.Media.Brushes.White;  // 默认前景色为白色
 
         public SolidColorBrush ForegroundColor
         {
@@ -42,7 +43,7 @@ namespace WinDesktopTodoList
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        protected virtual void OnPropertyChanged(string propertyName)
+        protected virtual void OnPropertyChanged(string propertyName)  // 属性改变事件
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
@@ -56,37 +57,18 @@ namespace WinDesktopTodoList
         public const int SM_CXSCREEN = 0;
         public const int SM_CYSCREEN = 1;
 
-
-
         [DllImport("user32.dll")]
         public static extern IntPtr FindWindow(string className, string winName);
 
-        [DllImport("user32.dll")]
-        public static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam, uint fuFlage, uint timeout, IntPtr result);
-
         //查找窗口的委托 查找逻辑
         public delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
-        [DllImport("user32.dll")]
-        public static extern bool EnumWindows(EnumWindowsProc proc, IntPtr lParam);
 
         [DllImport("user32.dll")]
         public static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string className, string winName);
 
         [DllImport("user32.dll")]
-        public static extern bool ShowWindow(IntPtr hwnd, int nCmdShow);
-
-        [DllImport("user32.dll")]
         public static extern IntPtr SetParent(IntPtr hwnd, IntPtr parentHwnd);
 
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/dd162758(v=vs.85).aspx
-        [DllImport("user32.dll", EntryPoint = "PaintDesktop")]
-        public static extern int PaintDesktop(IntPtr hdc);
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms633504(v=vs.85).aspx
-        [DllImport("user32.dll", EntryPoint = "GetDesktopWindow", SetLastError = true)]
-        public static extern IntPtr GetDesktopWindow();
         // http://msdn.microsoft.com/en-us/library/dd144871(VS.85).aspx
         [DllImport("user32.dll")]
         public static extern IntPtr GetDC(IntPtr hwnd);
@@ -113,78 +95,16 @@ namespace WinDesktopTodoList
 
         public const int SRCCOPY = 0xCC0020;
         #endregion
+
+        public const int WM_EXITSIZEMOVE = 0x0232;
     }
 
-
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
-        /// <summary>
-        /// 向桌面发送消息
-        /// </summary>
-        /// 定义programHandle 
-        public IntPtr programHandle;
-        public IntPtr mainwindowParentHandle;
         private static bool debug = true;
-
-        private const long WS_EX_TRANSPARENT = 0x00000020L;
-
-        private const int GWL_EXSTYLE = -20;
-        private const int WS_EX_LAYERED = 0x80000;
-        private const int LWA_ALPHA = 0x2;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-        [DllImport("user32.dll")]
-        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-
-        [DllImport("user32.dll")]
-        private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
-
-        public void SendMsgToProgman()
-        {
-            // 桌面窗口句柄，在外部定义，用于后面将我们自己的窗口作为子窗口放入
-            programHandle = Win32Func.FindWindow("Progman", null);
-
-            IntPtr result = IntPtr.Zero;
-            // 向 Program Manager 窗口发送消息 0x52c 的一个消息，超时设置为2秒
-            Win32Func.SendMessageTimeout(programHandle, 0x52c, IntPtr.Zero, IntPtr.Zero, 0, 2, result);
-
-            // 遍历顶级窗口
-            Win32Func.EnumWindows((hwnd, lParam) =>
-            {
-                // 找到第一个 WorkerW 窗口，此窗口中有子窗口 SHELLDLL_DefView，所以先找子窗口
-                if (Win32Func.FindWindowEx(hwnd, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero)
-                {
-                    // 找到当前第一个 WorkerW 窗口的，后一个窗口，即第二个 WorkerW 窗口。
-                    IntPtr tempHwnd = Win32Func.FindWindowEx(IntPtr.Zero, hwnd, "WorkerW", null);
-                    // 隐藏第二个 WorkerW 窗口
-                    Win32Func.ShowWindow(tempHwnd, 0);
-                    // 记录第一个 WorkerW 窗口的句柄
-                    mainwindowParentHandle = hwnd;
-                }
-                return true;
-            }, IntPtr.Zero);
-
-        }
-
-        private const int WM_ACTIVATE = 0x0006;
-        private const int WA_INACTIVE = 0;
-        private const int WM_NCACTIVATE = 0x0086;
 
         public static BitmapSource ApplyGaussianBlur(BitmapSource bitmapSource, double radius)
         {
-
-
             // 创建一个 WriteableBitmap 以便应用效果
             WriteableBitmap writeableBitmap = new WriteableBitmap(bitmapSource);
 
@@ -240,9 +160,6 @@ namespace WinDesktopTodoList
 
             loadFromFile();
 
-            //向桌面发送消息
-            //SendMsgToProgman(); 
-
             // 添加窗口消息处理程序
             Loaded += (s, e) =>
             {
@@ -253,11 +170,9 @@ namespace WinDesktopTodoList
             };
         }
 
-        private const int WM_EXITSIZEMOVE = 0x0232;
-
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (msg == WM_EXITSIZEMOVE && this.currentTheme == Theme.GaussianBlur)
+            if (msg == Win32Func.WM_EXITSIZEMOVE && this.currentTheme == Theme.GaussianBlur)
             {
                 resetWindowBackGround();
                 handled = true;
@@ -358,34 +273,11 @@ namespace WinDesktopTodoList
             appBackground.Background = imageBrush;
         }
 
-        [DllImport("user32.dll")]
-        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-
-        public const UInt32 SWP_NOSIZE = 0x0001;
-        public const UInt32 SWP_NOMOVE = 0x0002;
-        public const UInt32 SWP_NOACTIVATE = 0x0010;
-        public const UInt32 SWP_NOZORDER = 0x0004;
-        public static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
-
-        protected override void OnDeactivated(EventArgs e)
-        {
-            base.OnActivated(e);
-        }
-
-        protected override void OnActivated(EventArgs e)
-        {
-            base.OnActivated(e);
-        }
-
-        protected override void OnStateChanged(EventArgs e)
-        {
-            base.OnStateChanged(e);
-        }
-
         private bool hasSentToBack = false;
 
         private void attachWindowToDesktop()
         {
+            // 将窗口嵌入到桌面
             if (!hasSentToBack)
             {
                 IntPtr hWnd = new WindowInteropHelper(this).Handle;
@@ -540,6 +432,7 @@ namespace WinDesktopTodoList
 
         private void loadFromFile()
         {
+            // 从文件中加载待办事项
             finishedItems.Items.Clear();
             lstItems.Items.Clear();
             if (File.Exists("finished.txt"))
@@ -622,6 +515,7 @@ namespace WinDesktopTodoList
 
         private void setCheckBoxBorderBrush(SolidColorBrush color)
         {
+            // 设置所有CheckBox的边框颜色
             foreach (var item in lstItems.Items)
             {
                 var listBoxItem = (ListBoxItem)(lstItems.ItemContainerGenerator.ContainerFromItem(item));
@@ -639,6 +533,7 @@ namespace WinDesktopTodoList
 
         public static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
         {
+            // 递归查找所有子元素
             if (depObj != null)
             {
                 for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
