@@ -1,24 +1,14 @@
 ﻿using System.ComponentModel;
-using System.Drawing;
-using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using static System.Net.Mime.MediaTypeNames;
 
 
 namespace WinDesktopTodoList
@@ -102,6 +92,22 @@ namespace WinDesktopTodoList
     public partial class MainWindow : Window
     {
         private static bool debug = true;
+        private double scale_factor = 1.0;
+        private int width = 300;
+        private int height = 360;
+        private Theme currentTheme;
+        private bool embed_to_desktop = true;
+
+        private int currentId = 0;
+        private enum Theme
+        {
+            Dark,
+            Light,
+            Transparent,
+            GaussianBlur,
+            Custom
+        };
+        private ViewModel viewModel;
 
         public static BitmapSource ApplyGaussianBlur(BitmapSource bitmapSource, double radius)
         {
@@ -135,27 +141,23 @@ namespace WinDesktopTodoList
             return renderTargetBitmap;
         }
 
-        private int currentId = 0;
-        private enum Theme
-        {
-            Dark,
-            Light,
-            Transparent,
-            GaussianBlur,
-            Custom
-        };
-        private Theme currentTheme;
-        private ViewModel viewModel;
-
         public MainWindow()
         {
+            if (!loadConfig())
+            {
+                // 加载配置失败，退出程序
+                Application.Current.Shutdown();
+            }
             InitializeComponent();
+            getSystemWindowHandlers();
             this.viewModel = new ViewModel();
             this.DataContext = this.viewModel;
-            this.currentTheme = Theme.GaussianBlur;
 
             this.Left = 1300; // 设置窗口左边距
             this.Top = 10;  // 设置窗口上边距
+            // 设置窗口大小
+            this.Width = this.width;
+            this.Height = this.height;
             setWindowBackGround();
 
             loadFromFile();
@@ -166,8 +168,93 @@ namespace WinDesktopTodoList
                 var hwndSource = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
                 hwndSource.AddHook(WndProc);
 
-                attachWindowToDesktop();
+                if (this.embed_to_desktop)
+                {
+                    attachWindowToDesktop(); 
+                }
             };
+        }
+
+        private void getSystemWindowHandlers()
+        {
+            // 获取桌面窗口的设备上下文
+            progman = Win32Func.FindWindow("Progman", "Program Manager");
+            shellView = Win32Func.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", "");
+            sysListView = Win32Func.FindWindowEx(shellView, IntPtr.Zero, "SysListView32", "FolderView");
+        }
+
+        private class Config
+        {
+            public bool debug { get; set; }
+            public double scale_factor { get; set; }
+            public int width { get; set; }
+            public int height { get; set; }
+            public int default_theme { get; set; }
+            public bool embed_to_desktop { get; set; }
+        }
+
+        private bool loadConfig()
+        {
+            // 从src/config.json中加载配置
+            if (!File.Exists("src/config.json"))
+            {
+                if (debug)
+                {
+                    MessageBox.Show("配置文件不存在");
+                }
+                return false;
+            }
+            string content = File.ReadAllText("src/config.json");
+            if (content != null)
+            {
+                try
+                {
+                    Config config = JsonSerializer.Deserialize<Config>(content);
+                    debug = config.debug;
+                    scale_factor = config.scale_factor;
+                    width = config.width;
+                    height = config.height;
+                    switch (config.default_theme)
+                    {
+                        case 0:
+                            this.currentTheme = Theme.Dark;
+                            break;
+                        case 1:
+                            this.currentTheme = Theme.Light;
+                            break;
+                        case 2:
+                            this.currentTheme = Theme.Transparent;
+                            break;
+                        case 3:
+                            this.currentTheme = Theme.GaussianBlur;
+                            break;
+                        case 4:
+                            this.currentTheme = Theme.Custom;
+                            break;
+                        default:
+                            this.currentTheme = Theme.GaussianBlur;
+                            break;
+                    }
+                    embed_to_desktop = config.embed_to_desktop;
+                    return true;
+                }
+                catch (JsonException e)
+                {
+                    if (debug)
+                    {
+                        MessageBox.Show(e.Message);
+                    }
+                    return false;
+                }
+            }
+            else
+            {
+                if (debug)
+                {
+                    MessageBox.Show("读取文件失败，读取内容为空");
+                }
+                return false;
+            }
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -189,11 +276,11 @@ namespace WinDesktopTodoList
             {
                 return;
             }
-            int realLeft = (int)(this.Left * 1.25);
-            int realTop = (int)(this.Top * 1.25);
+            int realLeft = (int)(this.Left * this.scale_factor);
+            int realTop = (int)(this.Top * this.scale_factor);
             // 获取window宽度和高度
-            int realwidth = (int)(this.Width * 1.25);
-            int realheight = (int)(this.Height * 1.25);
+            int realwidth = (int)(this.Width * this.scale_factor);
+            int realheight = (int)(this.Height * this.scale_factor);
             // 获取 bitmapSource 的宽度和高度
             int bitmapWidth = backgroundPicture.PixelWidth;
             int bitmapHeight = backgroundPicture.PixelHeight;
@@ -213,6 +300,50 @@ namespace WinDesktopTodoList
 
         private void setWindowBackGround()
         {
+            switch (this.currentTheme)
+            {
+                case Theme.Dark:
+                    this.currentTheme = Theme.Dark;
+                    appBackground.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 0, 0, 0));
+                    //this.foreground = "White";
+                    this.viewModel.ForegroundColor = System.Windows.Media.Brushes.White;
+                    setCheckBoxBorderBrush(System.Windows.Media.Brushes.White);
+                    return;
+                case Theme.Light:
+                    this.currentTheme = Theme.Light;
+                    appBackground.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 255, 255, 255));
+                    //this.foreground = "Black";
+                    this.viewModel.ForegroundColor = System.Windows.Media.Brushes.Black;
+                    setCheckBoxBorderBrush(System.Windows.Media.Brushes.Black);
+                    return;
+                case Theme.Transparent:
+                    this.currentTheme = Theme.Transparent;
+                    appBackground.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(1, 255, 255, 255));
+                    //this.foreground = "White";
+                    this.viewModel.ForegroundColor = System.Windows.Media.Brushes.White;
+                    setCheckBoxBorderBrush(System.Windows.Media.Brushes.White);
+                    outerBorder.BorderThickness = new Thickness(0);
+                    return;
+                case Theme.GaussianBlur:
+                    break;
+                case Theme.Custom:
+                    if (loadThemeFromFile())
+                    {
+                        this.currentTheme = Theme.Custom;
+                    }
+                    else
+                    {
+                        // message box提示用户失败
+                        MessageBox.Show("加载自定义主题失败。自动切换至Dark主题");
+                        this.currentTheme = Theme.Dark;
+                        appBackground.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 0, 0, 0));
+                        //this.foreground = "White";
+                        this.viewModel.ForegroundColor = System.Windows.Media.Brushes.White;
+                        setCheckBoxBorderBrush(System.Windows.Media.Brushes.White);
+                    }
+                    return;
+            }
+
             // 创建一个 ImageBrush 并设置图片源
             ImageBrush imageBrush = new ImageBrush();
             BitmapSource bitmapSource = CaptureWallpaper();
@@ -224,11 +355,11 @@ namespace WinDesktopTodoList
                 }
                 return;
             }
-            int realLeft = (int)(this.Left * 1.25);
-            int realTop = (int)(this.Top * 1.25);
+            int realLeft = (int)(this.Left * this.scale_factor);
+            int realTop = (int)(this.Top * this.scale_factor);
             // 获取window宽度和高度
-            int realwidth = (int)(this.Width * 1.25);
-            int realheight = (int)(this.Height * 1.25);
+            int realwidth = (int)(this.Width * this.scale_factor);
+            int realheight = (int)(this.Height * this.scale_factor);
             // 获取 bitmapSource 的宽度和高度
             int bitmapWidth = bitmapSource.PixelWidth;
             int bitmapHeight = bitmapSource.PixelHeight;
@@ -341,11 +472,6 @@ namespace WinDesktopTodoList
             IntPtr compatibleBitmapHandle = IntPtr.Zero;
             try
             {
-                // 获取桌面窗口的设备上下文
-                progman = Win32Func.FindWindow("Progman", "Program Manager");
-                shellView = Win32Func.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", "");
-                sysListView = Win32Func.FindWindowEx(shellView, IntPtr.Zero, "SysListView32", "FolderView");
-
                 if (sysListView == IntPtr.Zero)
                 {
                     Console.WriteLine("Failed to find SysListView32 window.");
@@ -649,9 +775,13 @@ namespace WinDesktopTodoList
             throw new FormatException("颜色字符串格式不正确");
         }
 
-        private void reloadFromFile(object sender, RoutedEventArgs e)
+        private void  refresh(object sender, RoutedEventArgs e)
         {
+            loadConfig();
+            this.Width = this.width;
+            this.Height = this.height;
             loadFromFile();
+            setWindowBackGround();
         }
 
         private void showInfo(object sender, RoutedEventArgs e)
